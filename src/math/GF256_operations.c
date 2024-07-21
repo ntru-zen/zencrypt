@@ -1,9 +1,5 @@
 #include "GF256_operations.h"
 
-byte GF256_sum(byte a, byte b) {
-	return a ^ b;
-}
-
 byte GF256_mul(byte a, byte b, byte modulo) {
 	byte c = 0; /* accumulator for the product of the multiplication */
 	while (a != 0 && b != 0) {
