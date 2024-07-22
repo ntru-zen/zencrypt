@@ -1,21 +1,28 @@
-#include "gost34_12_2018.h"
-#include "../../math/GF256_operations.h"
 #include <string.h>
-#include <stdio.h>
+#include <stdint.h>
+#include "kuznechik.h"
+#include "../../math/GF256_operations.h"
 
-/*
-	The block size according to GOST 34.12 - 2018 is 128 bits. 128 bits = 16 bytes
-
-	GOST 34.12 - 2018 uses the Galois field GF(2^8) modulo
-	the irreducible polynomial p(x) = x^8 +x^7 + x^6 + x + 1.
-	This polynomial corresponds to 11000011 in binary representation 
-	and 0xc3 in hexadecimal representation.
-*/
 static const int BLOCK_SIZE = 16;
 static const int PI_SBOX_SIZE = 256;
 static const int MODULO_POLY = 0xc3;
 
-static vect iter_key[10];
+/*
+	The Kuznechik algorithm perates with a set of 16 bytes, 
+	so we called it a state.
+*/
+typedef byte state[BLOCK_SIZE];
+
+/*
+	The block size according to Kuznechik is 128 bits. 128 bits = 16 bytes
+
+	Kuznechik uses the Galois field GF(2^8) modulo
+	the irreducible polynomial p(x) = x^8 +x^7 + x^6 + x + 1.
+	This polynomial corresponds to 11000011 in binary representation 
+	and 0xc3 in hexadecimal representation.
+*/
+
+static state iter_key[10];
 
 /*
 	Pi substitution table.
@@ -109,7 +116,7 @@ static const byte l_coefficients[BLOCK_SIZE] = {
 	These constants can be calculated using the calc_iter_consts_C() function.
 
 */
-static const vect iter_C[32] = {
+static const state iter_C[32] = {
 	{ 0x6e, 0xa2, 0x76, 0x72, 0x6c, 0x48, 0x7a, 0xb8, 0x5d, 0x27, 0xbd, 0x10, 0xdd, 0x84, 0x94, 0x01 },
 	{ 0xdc, 0x87, 0xec, 0xe4, 0xd8, 0x90, 0xf4, 0xb3, 0xba, 0x4e, 0xb9, 0x20, 0x79, 0xcb, 0xeb, 0x02 },
 	{ 0xb2, 0x25, 0x9a, 0x96, 0xb4, 0xd8, 0x8e, 0x0b, 0xe7, 0x69, 0x04, 0x30, 0xa4, 0x4f, 0x7f, 0x03 },
@@ -176,7 +183,7 @@ static void reverse_S_transformation(const byte *in_data, byte *out_data) {
 */
 static void R_transformation(byte *state) {
 	byte a_0 = state[15];
-	vect internal;
+	state internal;
 	
 	for(int i = BLOCK_SIZE-2; i >= 0; i--) {
 		internal[i+1] = state[i];
@@ -193,7 +200,7 @@ static void R_transformation(byte *state) {
 */
 static void reverse_R_transformation(byte *state) {
 	byte a_15 = state[0];
-	vect internal;
+	state internal;
 
 	for(int i = 0; i < BLOCK_SIZE-1; i++) {
 		internal[i] = state[i+1];
@@ -208,7 +215,7 @@ static void reverse_R_transformation(byte *state) {
 	Just 16 times R_transformation
 */
 static void L_transformation(const byte *in_data, byte *out_data) {
-	vect internal;
+	state internal;
 	memcpy(internal, in_data, BLOCK_SIZE);
 
 	for(int i = 0; i < BLOCK_SIZE; i++)
@@ -221,7 +228,7 @@ static void L_transformation(const byte *in_data, byte *out_data) {
 	Just 16 times reverse_R_transformation
 */
 static void reverse_L_transformation(const byte *in_data, byte *out_data) {
-	vect internal;
+	state internal;
 	memcpy(internal, in_data, BLOCK_SIZE);
 
 	for(int i = 0; i < BLOCK_SIZE; i++)
@@ -238,7 +245,7 @@ static void reverse_L_transformation(const byte *in_data, byte *out_data) {
 
 /*
 static void calc_iter_consts_C() {
-	vect iter_num[32];
+	state iter_num[32];
 	for (int i = 0; i < 32; i++) {
 		memset(iter_num[i], 0, BLOCK_SIZE);
 		iter_num[i][15] = i+1;
@@ -259,7 +266,7 @@ static void calc_iter_consts_C() {
 */
 static void F_function(const byte *in_key1, const byte *in_key2,
 						byte *out_key1, byte *out_key2, const byte *iter_const) {
-	vect internal;
+	state internal;
 	memcpy(out_key2, in_key1, BLOCK_SIZE);
 	X_transformation(in_key1, iter_const, internal);
 	S_transformation(internal, internal);
@@ -297,9 +304,9 @@ static void expand_key_function(const byte *key1, const byte *key2) {
 /*
 	Before encryption, a function expand_key_function must be called to fill in the array of iterative keys (iter_key).
 
-	GOST34_12_2018_encrypt(blk, out_blk) = out_blk = X(...(LSX(LSX(blk, iter_key[0]), iter_key[1]), ... ), iter_key[10])
+	kuznechick_encrypt(blk, out_blk) = out_blk = X(...(LSX(LSX(blk, iter_key[0]), iter_key[1]), ... ), iter_key[9])
 */
-void GOST34_12_2018_encrypt(const byte *blk, byte *out_blk)
+void kuznechick_encrypt(const byte *blk, byte *out_blk)
 {
     int i;
     memcpy(out_blk, blk, BLOCK_SIZE);
@@ -313,7 +320,7 @@ void GOST34_12_2018_encrypt(const byte *blk, byte *out_blk)
     X_transformation(out_blk, iter_key[9], out_blk);
 }
 
-void GOST34_12_2018_decrypt(const byte *blk, byte *out_blk)
+void kuznechick_decrypt(const byte *blk, byte *out_blk)
 {
     int i;
     memcpy(out_blk, blk, BLOCK_SIZE);
