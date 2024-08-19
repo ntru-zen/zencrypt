@@ -183,15 +183,13 @@ static void reverse_S_transformation(const byte *in_data, byte *out_data) {
 */
 static void R_transformation(byte *state) {
 	byte a_0 = state[15];
-	state internal;
 	
 	for(int i = BLOCK_SIZE-2; i >= 0; i--) {
-		internal[i+1] = state[i];
+		state[i+1] = state[i];
 		a_0 ^= GF256_mul(state[i], l_coefficients[i], MODULO_POLY);
 	}
 
-	internal[0] = a_0;
-	memcpy(state, internal, BLOCK_SIZE);
+	state[0] = a_0;
 }
 
 /*
@@ -200,15 +198,13 @@ static void R_transformation(byte *state) {
 */
 static void reverse_R_transformation(byte *state) {
 	byte a_15 = state[0];
-	state internal;
 
 	for(int i = 0; i < BLOCK_SIZE-1; i++) {
-		internal[i] = state[i+1];
+		state[i] = state[i+1];
 		a_15 ^= GF256_mul(state[i+1], l_coefficients[i], MODULO_POLY);
 	}
 
-	internal[15] = a_15;
-	memcpy(state, internal, BLOCK_SIZE);
+	state[15] = a_15;
 }
 
 /*
