@@ -3,9 +3,9 @@
 #include "kuznechik.h"
 #include "../../math/GF256_operations.h"
 
-static const int BLOCK_SIZE = 16;
-static const int PI_SBOX_SIZE = 256;
-static const int MODULO_POLY = 0xc3;
+#define BLOCK_SIZE 16
+#define PI_SBOX_SIZE 256
+#define MODULO_POLY 0xc3
 
 /*
 	The Kuznechik algorithm perates with a set of 16 bytes, 
